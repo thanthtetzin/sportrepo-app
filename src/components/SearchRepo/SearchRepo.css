@@ -22,3 +22,9 @@ code{
 .font-size-12{
   font-size: 12px !important;
 }
+.type-radios{
+  display: block !important;
+}
+.search-git-control{
+  margin-top: 40px;
+}
