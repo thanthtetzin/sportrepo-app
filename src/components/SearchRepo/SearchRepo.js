@@ -7,29 +7,131 @@ import {
   Col,
   Form,
   Tabs,
-  Tab
+  Tab,
+  Spinner,
+  Alert,
+  Card
 } from "react-bootstrap";
 import "./SearchRepo.css";
+import FETCH_ORG_REPO_DETAILS from '../../graphQL-helpers/fetchOrgRepoDetailsQuery';
+import { useLazyQuery } from '@apollo/react-hooks';
 
-const SearchRepo = () => {
-  const [ validated, setValidated ] = useState(false);
-  const [ userName, setUserName ] = useState('nuwave');
-  const [ repoName, setRepoName ] = useState('lighthouse');
+function ListByType(props){
+  let dataType = props.dataType;
+  let data = props.data;
+  let returnElements = null;
+  if(data){
+    returnElements = data.map((dataItem,index) => {
+      return <Card key={index} className="list-item-row">
+      <Card.Body>
+        <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/issues/${dataItem.number}` : ""}`}>{dataItem.title}</a></Card.Title>
+        <Card.Subtitle className="mb-2 text-muted font-size-12">#{dataItem.number} opened at {dataItem.createdAt} by {dataItem.author.login}</Card.Subtitle>
+      </Card.Body>
+    </Card>
+    })
+  }
+  return returnElements;
+}
+
+function DisplayResultsInTabView(props) {
   const [key, setKey] = useState('pr');
+  let searchResult = null;
+  const alertInfo = (variant, message) => {
+    return <Container>
+        <Row>
+          <Col>
+            <Alert  variant={variant}>
+              <p dangerouslySetInnerHTML={{ __html: message}}></p>
+            </Alert>
+          </Col>
+        </Row>
+      </Container>;
+  }
+  if(props.isLoading){
+    searchResult = <Spinner animation="border" variant="success" />
+  } else if(props.error){
+    searchResult = alertInfo("danger", `Cannot find this Organization in GitHub!`);
+  } else if(!props.isLoading && props.result){
+    let result = props.result;
+    if(result.organization && !result.organization.repository){
+      searchResult = alertInfo("info", `There is no specified repository in this Organization!`);
+    } else{
+      let pullRequests = result.organization.repository.pullRequests ? result.organization.repository.pullRequests.nodes : null;
+      let openedIssues = result.organization.repository.openedIssues ? result.organization.repository.openedIssues.nodes : null;
+      let closedIssues = result.organization.repository.closedIssues ? result.organization.repository.closedIssues.nodes : null;
+      searchResult = <Container key="tabControls">
+        <Row>
+          <Col>
+          <Tabs activeKey={key} onSelect={k => setKey(k)}>
+            <Tab eventKey="pr" title="Pull Requests">
+              <ListByType dataType="pr" data={pullRequests} />
+            </Tab>
+            <Tab eventKey="opened-issues" title="Opened Issues">
+              <ListByType dataType="opened-issue" data={openedIssues} />
+            </Tab>
+            <Tab eventKey="closed-issues" title="Closed Issues">
+              <ListByType dataType="closed-issue" data={closedIssues} />
+            </Tab>
+          </Tabs>
+          </Col>
+        </Row>
+      </Container>;
+    }
+  }
+  return searchResult;      
+}
+
+function SearchRepo() {
+  const [ validated, setValidated ] = useState(false);
+  const [ orgName, setOrgName ] = useState('');
+  const [ repoName, setRepoName ] = useState('');
+  let [ isLoading ] = useState(false);
+  let [ result ] = useState(null);
+
+  const [fetchOrgRepoDetails, { error, loading, data }] = useLazyQuery(FETCH_ORG_REPO_DETAILS);
+  const fetchOrgRepoDetails_CallBack = (error, loading, data) => {
+    if (data) {
+      console.log('Returned data: ' , data);
+      result = data;
+      isLoading=false;
+    }
+    if(error){
+      console.log('Error: ' , error);
+      isLoading=false;
+    }
+    if(loading){
+      isLoading=true;
+    }
+  }
+  fetchOrgRepoDetails_CallBack(error, loading, data);
+
+
   const handleSubmit = event => {
     const form = event.currentTarget;
     event.preventDefault();
-    
     if (form.checkValidity() === false) {
       event.stopPropagation();
     } else{
-      setValidated(true);
       submit();
-    }    
+    }
+    setValidated(true);
   };
   const submit = () => {
-    console.log(userName, repoName);
+    localStorage.setItem('token', process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN);
+    isLoading = true;
+    fetchFilteredOrgRepoDetails();
   }
+  const fetchFilteredOrgRepoDetails = () => {
+    const fetchPR = true, fetchOpenedIssue = true, fetchClosedIssue = true;
+    const fetchPROrderBy = 'CREATED_AT', fetchOpenedIssueOrderBy = 'CREATED_AT', fetchClosedIssueOrderBy  = 'CREATED_AT';
+    const fetchPRSortDirection = 'DESC', fetchOpenedIssueSortDirection = 'DESC', fetchClosedIssueSortDirection  = 'DESC';
+    fetchOrgRepoDetails({ variables: { orgName, repoName, 
+      fetchPR, fetchPROrderBy, fetchPRSortDirection,
+      fetchOpenedIssue, fetchOpenedIssueOrderBy, fetchOpenedIssueSortDirection,
+      fetchClosedIssue, fetchClosedIssueOrderBy, fetchClosedIssueSortDirection
+     } });
+  }
+
   const searchControls = <div key="searchControls">
     <h2>Search your repo in here</h2>
     <Container>
@@ -38,15 +140,15 @@ const SearchRepo = () => {
           <Form noValidate validated={validated} onSubmit={handleSubmit}>
             <Form.Row>
               <Form.Group as={Col} md="5" controlId="validationCustom01">
-                <label htmlFor="userName" className="float-left">Search the git repository</label>
+                <label htmlFor="orgName" className="float-left">Search the git repository</label>
                 <InputGroup className="mb-3">
                   <Form.Control
                     required
-                    name="userName"
+                    name="orgName"
                     type="text"
-                    placeholder="Username"
-                    value={userName}
-                    onChange={e=> setUserName(e.target.value)}
+                    placeholder="Organization Name"
+                    value={orgName}
+                    onChange={e=> setOrgName(e.target.value.trim())}
                   />
                   <InputGroup.Prepend>
                     <InputGroup.Text>/</InputGroup.Text>
@@ -57,7 +159,7 @@ const SearchRepo = () => {
                     type="text"
                     placeholder="Repo name"
                     value={repoName}
-                    onChange={e=> setRepoName(e.target.value)}
+                    onChange={e=> setRepoName(e.target.value.trim())}
                   />
                   <InputGroup.Append>
                     <Button type="submit" variant="outline-primary">Search</Button>
@@ -69,26 +171,14 @@ const SearchRepo = () => {
         </Col>
       </Row>
     </Container>
+    <DisplayResultsInTabView error={error} isLoading={isLoading} result={result} orgName={orgName} repoName={repoName} />
   </div>;
-  const tabControls = <Container key="tabControls">
-      <Row>
-        <Col>
-        <Tabs activeKey={key} onSelect={k => setKey(k)}>
-          <Tab eventKey="pr" title="Pull Requests">
-            
-          </Tab>
-          <Tab eventKey="opened-issues" title="Opened Issues">
-          </Tab>
-          <Tab eventKey="closed-issues" title="Closed Issues">
-          </Tab>
-        </Tabs>
-        </Col>
-      </Row>
-    </Container>;
+  
+  
+  
   
   return ([
-    searchControls,
-    tabControls
+    searchControls
     ]
   );
 }
