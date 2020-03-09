@@ -20,7 +20,7 @@ function ListByType(props){
   let dataType = props.dataType;
   let data = props.data;
   let returnElements = null;
-  if(data){
+  if(data.length){
     returnElements = data.map((dataItem,index) => {
       return <Card key={index} className="list-item-row">
       <Card.Body>
@@ -29,6 +29,8 @@ function ListByType(props){
       </Card.Body>
     </Card>
     })
+  } else{
+    returnElements = <p className="nothing-to-show">Nothing to show</p>
   }
   return returnElements;
 }
@@ -49,7 +51,7 @@ function DisplayResultsInTabView(props) {
       </Container>;
   }
   if(props.isLoading){
-    searchResult = <Spinner animation="border" variant="success" />
+    searchResult = <Spinner className="spinner" animation="border" variant="success" />
   } else if(props.queryError && !props.result){
     searchResult = alertInfo("danger", (searchTypeName==='Username' ? 'Cannot find this Username in GitHub!' : 'Cannot find this Organization in GitHub!'));
   }
@@ -96,7 +98,7 @@ function DisplayResultsInTabView(props) {
       </Row>
     </Container> : searchResult;
   }
-  if(props.notshowAnything){
+  if(props.notShowAnything){
     return null;
   } else {
     return searchResult; 
@@ -112,7 +114,7 @@ function SearchRepo() {
   let [ isLoading, setIsLoading ] = useState(false);
   let [ queryError, setQueryError ] = useState('');
   let [ result, setResult ] = useState(null);
-  let [ notshowAnything, setnotshowAnything ] = useState(false);
+  let [ notShowAnything, setNotShowAnything ] = useState(false);
 
   const resetData = () => {
     console.log('resetData');
@@ -156,7 +158,7 @@ function SearchRepo() {
     setValidated(true);
   };
   const submit = () => {
-    setnotshowAnything(false);
+    setNotShowAnything(false);
     localStorage.setItem('token', process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN);
     isLoading = true;
     console.log('searchTypeName: ', searchTypeName.value)
@@ -184,7 +186,7 @@ function SearchRepo() {
     }
   }
 
-  const searchControls = <div key="searchControls">
+  const searchControls = <div key="searchControlsAndTabsView">
     <h2>Search your repo in here</h2>
     <Container>
       <Row className="search-git-control">
@@ -200,7 +202,7 @@ function SearchRepo() {
               onChange={ () => {
                 setSearchTypeName({value: 'Username'});
                 resetData();
-                setnotshowAnything(true);
+                setNotShowAnything(true);
               }}
             />
             <Form.Check inline 
@@ -212,7 +214,7 @@ function SearchRepo() {
               onChange={ () => {
                 setSearchTypeName({value: 'Organization'});
                 resetData();
-                setnotshowAnything(true);
+                setNotShowAnything(true);
               }}
             />
           </Form.Group>
@@ -255,7 +257,7 @@ function SearchRepo() {
         </Col>
       </Row>
     </Container>
-    <DisplayResultsInTabView notshowAnything={notshowAnything} searchTypeName={clonedSearchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
+    <DisplayResultsInTabView notShowAnything={notShowAnything} searchTypeName={clonedSearchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
   </div>;
   
   

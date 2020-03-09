@@ -28,3 +28,16 @@ code{
 .search-git-control{
   margin-top: 40px;
 }
+.nothing-to-show{
+  font-weight: bold;
+  margin-top: 10%;
+}
+.spinner{
+  margin-top: 5%;
+}
+.hide{
+  display: none;
+}
+.show{
+  display: block;
+}
