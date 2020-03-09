@@ -1,13 +1,16 @@
-import React from 'react';
-import SearchRepo from './components/SearchRepo/SearchRepo';
-import './App.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
-
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/react-hooks';
 import { ApolloClient } from 'apollo-client';
 import { createHttpLink } from 'apollo-link-http';
 import { setContext } from 'apollo-link-context';
 import { InMemoryCache } from 'apollo-cache-inmemory';
+import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+const SearchRepo = lazy(() => import('./components/SearchRepo/SearchRepo'));
+const IssueDetail = lazy(() => import('./components/IssueDetail/IssueDetail'));
+
 const httpLink = createHttpLink({
   uri: "https://api.github.com/graphql",
 });
@@ -31,9 +34,17 @@ const client = new ApolloClient({
 
 const App = () => (
   <ApolloProvider client={client}>
-    <div className="App">
-      <SearchRepo/>
-    </div>
+    <Router>
+      <div className="App">
+        <Suspense fallback={<div>Loading...</div>}>
+          <Switch>
+            <Route exact path="/" component={SearchRepo}/>
+            <Route exact path="/:name/:reponame/:type" component={SearchRepo}/>
+            <Route path="/:name/:reponame/issues/:number" component={IssueDetail}/>
+          </Switch>
+        </Suspense>
+      </div>
+    </Router>
   </ApolloProvider>
 );
 

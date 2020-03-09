@@ -24,7 +24,7 @@ function ListByType(props){
     returnElements = data.map((dataItem,index) => {
       return <Card key={index} className="list-item-row">
       <Card.Body>
-        <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/issues/${dataItem.number}` : "#"}`}>{dataItem.title}</a></Card.Title>
+        <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/${props.orgOrUserName}/${props.repoName}/issues/${dataItem.number}` : "#"}`}>{dataItem.title}</a></Card.Title>
         <Card.Subtitle className="mb-2 text-muted font-size-12">#{dataItem.number} opened at {dataItem.createdAt} by {dataItem.author.login}</Card.Subtitle>
       </Card.Body>
     </Card>
@@ -43,7 +43,7 @@ function DisplayResultsInTabView(props) {
     return <Container>
         <Row>
           <Col>
-            <Alert  variant={variant}>
+            <Alert variant={variant}>
               <p dangerouslySetInnerHTML={{ __html: message}}></p>
             </Alert>
           </Col>
@@ -85,13 +85,13 @@ function DisplayResultsInTabView(props) {
         <Col>
         <Tabs activeKey={key} onSelect={k => setKey(k)}>
           <Tab eventKey="pr" title="Pull Requests">
-            <ListByType dataType="pr" data={pullRequests} />
+            <ListByType dataType="pr" data={pullRequests} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
           </Tab>
           <Tab eventKey="opened-issues" title="Opened Issues">
-            <ListByType dataType="opened-issue" data={openedIssues} />
+            <ListByType dataType="opened-issue" data={openedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
           </Tab>
           <Tab eventKey="closed-issues" title="Closed Issues">
-            <ListByType dataType="closed-issue" data={closedIssues} />
+            <ListByType dataType="closed-issue" data={closedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
           </Tab>
         </Tabs>
         </Col>
@@ -257,7 +257,7 @@ function SearchRepo() {
         </Col>
       </Row>
     </Container>
-    <DisplayResultsInTabView notShowAnything={notShowAnything} searchTypeName={clonedSearchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
+    <DisplayResultsInTabView orgOrUserName={orgOrUserName} repoName={repoName} notShowAnything={notShowAnything} searchTypeName={clonedSearchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
   </div>;
   
   
