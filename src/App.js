@@ -39,8 +39,7 @@ const App = () => (
         <Suspense fallback={<div>Loading...</div>}>
           <Switch>
             <Route exact path="/" component={SearchRepo}/>
-            <Route exact path="/:name/:reponame/:type" component={SearchRepo}/>
-            <Route path="/:name/:reponame/issues/:number" component={IssueDetail}/>
+            <Route path="/:type/:name/:reponame/issues/:number" component={IssueDetail}/>
           </Switch>
         </Suspense>
       </div>

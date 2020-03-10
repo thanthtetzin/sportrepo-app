@@ -21,10 +21,11 @@ function ListByType(props){
   let data = props.data;
   let returnElements = null;
   if(data.length){
+    let type = (props.searchTypeName==='Username') ? 'user' : 'org';
     returnElements = data.map((dataItem,index) => {
       return <Card key={index} className="list-item-row">
       <Card.Body>
-        <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/${props.orgOrUserName}/${props.repoName}/issues/${dataItem.number}` : "#"}`}>{dataItem.title}</a></Card.Title>
+        <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/${type}/${props.orgOrUserName}/${props.repoName}/issues/${dataItem.number}` : "#"}`}>{dataItem.title}</a></Card.Title>
         <Card.Subtitle className="mb-2 text-muted font-size-12">#{dataItem.number} opened at {dataItem.createdAt} by {dataItem.author.login}</Card.Subtitle>
       </Card.Body>
     </Card>
@@ -88,10 +89,10 @@ function DisplayResultsInTabView(props) {
             <ListByType dataType="pr" data={pullRequests} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
           </Tab>
           <Tab eventKey="opened-issues" title="Opened Issues">
-            <ListByType dataType="opened-issue" data={openedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
+            <ListByType dataType="opened-issue" data={openedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} searchTypeName={searchTypeName} />
           </Tab>
           <Tab eventKey="closed-issues" title="Closed Issues">
-            <ListByType dataType="closed-issue" data={closedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} />
+            <ListByType dataType="closed-issue" data={closedIssues} orgOrUserName={props.orgOrUserName} repoName={props.repoName} searchTypeName={searchTypeName} />
           </Tab>
         </Tabs>
         </Col>
