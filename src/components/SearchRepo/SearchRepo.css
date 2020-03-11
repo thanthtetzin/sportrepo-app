@@ -41,3 +41,43 @@ code{
 .show{
   display: block;
 }
+.margin-top-40{
+  margin-top: 40px;
+}
+.margin-top-20{
+  margin-top: 20px;
+}
+.issue-title{
+  margin-bottom: 0;
+  font-weight: 400;
+  line-height: 1.125;
+}
+.issue-number{
+  font-weight: 300;
+  color: #6a737d;
+  word-wrap: break-word;
+  white-space: normal;
+}
+.openedThisIssue{
+  float: left;
+}
+.openedThisIssue-text{
+  margin-left: 10px;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: 14px;
+  color: #586069;
+}
+.issueDetailDesAndComments{
+  margin-top:10px;
+}
+.text-align-left{
+  text-align: left;
+}
+.issue-description{
+  text-align: left;
+  font-size: 14px;
+}
+.comments-filter input, .comments-filter div span.input-group-text{
+  font-size:14px;
+}

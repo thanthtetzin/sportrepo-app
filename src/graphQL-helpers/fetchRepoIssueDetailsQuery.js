@@ -8,15 +8,18 @@ export const FETCH_USERNAME_REPO_ISSUE_DETAILS = gql`
         name,
         url,
         issue(number: $issueNumber){
+          id,
           number,
           author{login},
           title,
           createdAt,
+          body,
           bodyHTML,
           bodyText,
           closed,
           comments(first: 10){
             nodes{
+              id,
               author{login},
               createdAt,
               bodyHTML,
@@ -38,15 +41,18 @@ export const FETCH_ORG_REPO_ISSUE_DETAILS = gql`
         name,
         url,
         issue(number: $issueNumber){
+          id,
           number,
           author{login},
           title,
           createdAt,
+          body,
           bodyHTML,
           bodyText,
           closed,
           comments(first: 10){
             nodes{
+              id,
               author{login},
               createdAt,
               bodyHTML,

@@ -15,6 +15,7 @@ import {
 import "./SearchRepo.css";
 import { FETCH_USERNAME_REPO_DETAILS, FETCH_ORG_REPO_DETAILS } from '../../graphQL-helpers/fetchOrgRepoDetailsQuery';
 import { useLazyQuery } from '@apollo/react-hooks';
+import moment from 'moment';
 
 function ListByType(props){
   let dataType = props.dataType;
@@ -26,7 +27,7 @@ function ListByType(props){
       return <Card key={index} className="list-item-row">
       <Card.Body>
         <Card.Title className="font-size-16"><a href={`${dataType!=='pr' ? `/${type}/${props.orgOrUserName}/${props.repoName}/issues/${dataItem.number}` : "#"}`}>{dataItem.title}</a></Card.Title>
-        <Card.Subtitle className="mb-2 text-muted font-size-12">#{dataItem.number} opened at {dataItem.createdAt} by {dataItem.author.login}</Card.Subtitle>
+        <Card.Subtitle className="mb-2 text-muted font-size-12">#{dataItem.number} opened at {moment(dataItem.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()} by {dataItem.author.login}</Card.Subtitle>
       </Card.Body>
     </Card>
     })

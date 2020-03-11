@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Container,
   Row,
   Col,
   Spinner,
   Alert,
+  Badge,
+  Button,
+  InputGroup,
+  FormControl,
   Card
 } from "react-bootstrap";
 import {
@@ -13,13 +17,26 @@ import {
 import "../SearchRepo/SearchRepo.css";
 import { FETCH_USERNAME_REPO_ISSUE_DETAILS, FETCH_ORG_REPO_ISSUE_DETAILS } from '../../graphQL-helpers/fetchRepoIssueDetailsQuery';
 import { useQuery } from '@apollo/react-hooks';
+import moment from 'moment';
 
-
+const alertInfo = (variant, message) => {
+  return <Container>
+      <Row>
+        <Col>
+          <Alert variant={variant}>
+            <p dangerouslySetInnerHTML={{ __html: message}}></p>
+          </Alert>
+        </Col>
+      </Row>
+    </Container>;
+}
 
 function IssueDetail(){
+  console.log('start')
   let [ isLoading, setIsLoading ] = useState(false);
   let [ queryError, setQueryError ] = useState('');
   let [ result, setResult ] = useState(null);
+  let [ issueCommentsShowStatus, setIssueCommentsShowStatus ] = useState(null);
   const { type, name, reponame: repoName, number } = useParams();
   const typeNameCorrect = ['user','org'].includes(type);
   const orgName = name;
@@ -53,30 +70,127 @@ function IssueDetail(){
   fetchRepoIssueDetails_CallBack(orgRepoIssueError, orgRepoIssueLoading, orgRepoIssueData);
   fetchRepoIssueDetails_CallBack(userRepoIssueError, userRepoIssueLoading, userRepoIssueData);
 
-  const alertInfo = (variant, message) => {
-    return <Container>
-        <Row>
-          <Col>
-            <Alert variant={variant}>
-              <p dangerouslySetInnerHTML={{ __html: message}}></p>
-            </Alert>
-          </Col>
-        </Row>
-      </Container>;
-  }
-  let issueDetail = null;
+  
+  let dataToRender = null;
   if(typeNameCorrect){
     if(isLoading){
-      issueDetail = <Spinner className="spinner" animation="border" variant="success" />;
+      dataToRender = <Spinner className="spinner" animation="border" variant="success" />;
     } else if(queryError && !result){
-      issueDetail = alertInfo("danger", 'Error: ' + queryError.message);
+      dataToRender = alertInfo("danger", 'Error: ' + queryError.message);
     } else if(!isLoading && result){
       console.log('Got result: ', result);
+      let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.user.repository.issue};
+      let issueStatus = issueDetail.closed ? 'Closed' : 'Open';      
+      let issueComments = issueDetail.comments.nodes;
+      if(issueCommentsShowStatus===null){
+        console.log(issueCommentsShowStatus);
+        console.log('initialized')
+        issueCommentsShowStatus={};
+        issueCommentsShowStatus[`${issueDetail.id}`] = true;
+        issueComments.forEach(comment => {
+          issueCommentsShowStatus[`${comment.id}`] = true;
+        });
+      }
+     
+    
+      const filterComments = (filterValue) => {
+        console.log(filterValue)
+        if(filterValue){
+          issueCommentsShowStatus[`${issueDetail.id}`] = issueDetail.bodyText.includes(filterValue) ? true : false;        
+          for (const comment of issueComments) {
+            issueCommentsShowStatus[`${comment.id}`] = comment.bodyText.includes(filterValue) ? true : false;
+          }
+
+          setIssueCommentsShowStatus(issueCommentsShowStatus);
+        }
+      }
+      dataToRender = <div key="issueDetail">
+        <Container>
+          <Row className="margin-top-40">
+            <Col md="12">
+            <h1 className="float-left">
+              <span className="issue-title">{issueDetail.title}</span>
+              <span className="issue-number"> #{issueDetail.number}</span>
+            </h1>
+            </Col>
+          </Row>
+          <Row>
+            <Col md="8">
+              <div className="openedThisIssue">
+                <Badge variant={`${issueDetail.closed ? 'danger' : "success"}`}>
+                  {issueStatus}
+                </Badge>
+                <span className="openedThisIssue-text">
+                  <b>{issueDetail.author.login}</b> opened this issue {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()} . {issueDetail.comments.nodes.length} comments
+                </span>
+              </div>
+            </Col>
+            <Col md="10">
+            <hr />
+            </Col>
+          </Row>
+          <Row>
+            <Col md="4">
+            <InputGroup className="mb-3 comments-filter">
+              <InputGroup.Prepend>
+                <InputGroup.Text id="basic-addon1">Filter</InputGroup.Text>
+              </InputGroup.Prepend>
+              <FormControl
+                placeholder="Type anything to filter comments"
+                aria-label="filter"
+                aria-describedby="basic-addon1"
+                onChange={(e) => {
+                  filterComments(e.target.value.trim());
+                }}
+              />
+            </InputGroup>
+            </Col>
+          </Row>
+          <Row key={issueDetail.id} className={`${issueCommentsShowStatus[issueDetail.id] ? 'show' : "hide"}`}>
+            <Col md="10">
+              <Card className="issue-description">
+                <Card.Header><b>{issueDetail.author.login}</b> commented {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}</Card.Header>
+                <Card.Body>
+                  <Card.Text>
+                    <span dangerouslySetInnerHTML={{ __html: issueDetail.bodyHTML}}></span>
+                  </Card.Text>
+                  <Button onClick={ ()=>{ 
+                      issueCommentsShowStatus[issueDetail.id] = false; 
+                      setIssueCommentsShowStatus(issueCommentsShowStatus);
+                    }} 
+                    variant="primary">Go somewhere</Button>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+          {issueComments.map(comment => (
+            <Row key={comment.id} className={`${issueCommentsShowStatus[comment.id] ? 'show margin-top-20' : "hide margin-top-20"}`}>
+              <Col md="10">
+                <Card className="issue-description">
+                  <Card.Header><b>{comment.author.login}</b> commented {moment(comment.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}</Card.Header>
+                  <Card.Body>
+                    <Card.Text>
+                      <span dangerouslySetInnerHTML={{ __html: comment.bodyHTML}}></span>
+                    </Card.Text>
+                    <Button onClick={ ()=>{ 
+                        issueCommentsShowStatus[comment.id] = false; 
+                        setIssueCommentsShowStatus(issueCommentsShowStatus);
+                        
+                        }
+                      } 
+                      variant="primary">Go somewhere</Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          ))}
+        </Container>
+        </div>
     }
   } else {
-    issueDetail = alertInfo("danger", 'The url parameters are not correct to fetch the data');
+    dataToRender = alertInfo("danger", 'The url parameters are not correct to fetch the data');
   }
-  return issueDetail;
+  return dataToRender;
 }
 
 export default IssueDetail;
