@@ -81,3 +81,7 @@ code{
 .comments-filter input, .comments-filter div span.input-group-text{
   font-size:14px;
 }
+.title-and-number{
+  text-align: left;
+  float: left;
+}

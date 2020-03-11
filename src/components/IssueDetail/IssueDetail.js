@@ -76,7 +76,7 @@ function IssueDetail(){
     } else if(queryError && !result){
       dataToRender = alertInfo("danger", 'Error: ' + queryError.message);
     } else if(!isLoading && result){
-      let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.user.repository.issue};
+      let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.username.repository.issue};
       let issueStatus = issueDetail.closed ? 'Closed' : 'Open';      
       let issueComments = issueDetail.comments.nodes;
    
@@ -84,7 +84,7 @@ function IssueDetail(){
         <Container>
           <Row className="margin-top-40">
             <Col md="12">
-            <h1 className="float-left">
+            <h1 className="title-and-number">
               <span className="issue-title">{issueDetail.title}</span>
               <span className="issue-number"> #{issueDetail.number}</span>
             </h1>
