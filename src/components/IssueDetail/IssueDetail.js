@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   Container,
   Row,
@@ -6,7 +6,6 @@ import {
   Spinner,
   Alert,
   Badge,
-  Button,
   InputGroup,
   FormControl,
   Card
@@ -33,10 +32,10 @@ const alertInfo = (variant, message) => {
 
 function IssueDetail(){
   console.log('start')
-  let [ isLoading, setIsLoading ] = useState(false);
-  let [ queryError, setQueryError ] = useState('');
-  let [ result, setResult ] = useState(null);
-  let [ issueCommentsShowStatus, setIssueCommentsShowStatus ] = useState(null);
+  let [ isLoading ] = useState(false);
+  let [ queryError ] = useState('');
+  let [ result ] = useState(null);
+  let [ filterValue, setFilterValue ] = useState('');
   const { type, name, reponame: repoName, number } = useParams();
   const typeNameCorrect = ['user','org'].includes(type);
   const orgName = name;
@@ -70,7 +69,6 @@ function IssueDetail(){
   fetchRepoIssueDetails_CallBack(orgRepoIssueError, orgRepoIssueLoading, orgRepoIssueData);
   fetchRepoIssueDetails_CallBack(userRepoIssueError, userRepoIssueLoading, userRepoIssueData);
 
-  
   let dataToRender = null;
   if(typeNameCorrect){
     if(isLoading){
@@ -78,32 +76,10 @@ function IssueDetail(){
     } else if(queryError && !result){
       dataToRender = alertInfo("danger", 'Error: ' + queryError.message);
     } else if(!isLoading && result){
-      console.log('Got result: ', result);
       let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.user.repository.issue};
       let issueStatus = issueDetail.closed ? 'Closed' : 'Open';      
       let issueComments = issueDetail.comments.nodes;
-      if(issueCommentsShowStatus===null){
-        console.log(issueCommentsShowStatus);
-        console.log('initialized')
-        issueCommentsShowStatus={};
-        issueCommentsShowStatus[`${issueDetail.id}`] = true;
-        issueComments.forEach(comment => {
-          issueCommentsShowStatus[`${comment.id}`] = true;
-        });
-      }
-     
-    
-      const filterComments = (filterValue) => {
-        console.log(filterValue)
-        if(filterValue){
-          issueCommentsShowStatus[`${issueDetail.id}`] = issueDetail.bodyText.includes(filterValue) ? true : false;        
-          for (const comment of issueComments) {
-            issueCommentsShowStatus[`${comment.id}`] = comment.bodyText.includes(filterValue) ? true : false;
-          }
-
-          setIssueCommentsShowStatus(issueCommentsShowStatus);
-        }
-      }
+   
       dataToRender = <div key="issueDetail">
         <Container>
           <Row className="margin-top-40">
@@ -137,48 +113,50 @@ function IssueDetail(){
               </InputGroup.Prepend>
               <FormControl
                 placeholder="Type anything to filter comments"
-                aria-label="filter"
-                aria-describedby="basic-addon1"
                 onChange={(e) => {
-                  filterComments(e.target.value.trim());
+                  setFilterValue(e.target.value.trim());
                 }}
               />
             </InputGroup>
             </Col>
           </Row>
-          <Row key={issueDetail.id} className={`${issueCommentsShowStatus[issueDetail.id] ? 'show' : "hide"}`}>
+          <Row key={issueDetail.id} 
+            className={`${filterValue==='' || 
+            (filterValue!=='' && issueDetail.bodyText.includes(filterValue)) ? 'show' : "hide"}`}
+          >
             <Col md="10">
               <Card className="issue-description">
-                <Card.Header><b>{issueDetail.author.login}</b> commented {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}</Card.Header>
+                <Card.Header>
+                  <b>{issueDetail.author.login}</b> commented {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
+                </Card.Header>
                 <Card.Body>
                   <Card.Text>
                     <span dangerouslySetInnerHTML={{ __html: issueDetail.bodyHTML}}></span>
                   </Card.Text>
-                  <Button onClick={ ()=>{ 
-                      issueCommentsShowStatus[issueDetail.id] = false; 
-                      setIssueCommentsShowStatus(issueCommentsShowStatus);
-                    }} 
-                    variant="primary">Go somewhere</Button>
                 </Card.Body>
               </Card>
             </Col>
           </Row>
-          {issueComments.map(comment => (
-            <Row key={comment.id} className={`${issueCommentsShowStatus[comment.id] ? 'show margin-top-20' : "hide margin-top-20"}`}>
+          {issueComments.filter((comment) => {
+            if(filterValue===''){
+              return comment;
+            } else if(comment.bodyText.includes(filterValue)){
+              return comment;
+            } else{
+              return null;
+            }
+          })
+          .map(comment => (
+            <Row key={comment.id} className='margin-top-20'>
               <Col md="10">
                 <Card className="issue-description">
-                  <Card.Header><b>{comment.author.login}</b> commented {moment(comment.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}</Card.Header>
+                  <Card.Header>
+                    <b>{comment.author.login}</b> commented {moment(comment.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
+                  </Card.Header>
                   <Card.Body>
                     <Card.Text>
                       <span dangerouslySetInnerHTML={{ __html: comment.bodyHTML}}></span>
                     </Card.Text>
-                    <Button onClick={ ()=>{ 
-                        issueCommentsShowStatus[comment.id] = false; 
-                        setIssueCommentsShowStatus(issueCommentsShowStatus);
-                        
-                        }
-                      } 
-                      variant="primary">Go somewhere</Button>
                   </Card.Body>
                 </Card>
               </Col>
