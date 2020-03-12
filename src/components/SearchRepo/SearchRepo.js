@@ -12,6 +12,8 @@ import {
   Alert,
   Card
 } from "react-bootstrap";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faKey } from '@fortawesome/free-solid-svg-icons';
 import "./SearchRepo.css";
 import { FETCH_USERNAME_REPO_DETAILS, FETCH_ORG_REPO_DETAILS } from '../../graphQL-helpers/fetchOrgRepoDetailsQuery';
 import { useLazyQuery } from '@apollo/react-hooks';
@@ -38,7 +40,7 @@ function ListByType(props){
 }
 
 function DisplayResultsInTabView(props) {
-  let searchTypeName = props.searchTypeName ? props.searchTypeName.value : null;
+  let searchTypeName = props.searchTypeName || null;
   const [key, setKey] = useState('pr');
   let searchResult = null;
   const alertInfo = (variant, message) => {
@@ -111,8 +113,8 @@ function SearchRepo() {
   const [ validated, setValidated ] = useState(false);
   const [ orgOrUserName, setOrgOrUserName ] = useState('');
   const [ repoName, setRepoName ] = useState('');
-  const [ searchTypeName, setSearchTypeName ] = useState({value: 'Username'});
-  const [ clonedSearchTypeName, setClonedSearchTypeName ] = useState(null);
+  const [ yourToken, setYourToken ] = useState('');
+  const [ searchTypeName, setSearchTypeName ] = useState('Username');
   let [ isLoading, setIsLoading ] = useState(false);
   let [ queryError, setQueryError ] = useState('');
   let [ result, setResult ] = useState(null);
@@ -128,14 +130,14 @@ function SearchRepo() {
     setResult(null);
   }
   const fetchRepoDetails_CallBack = (typeName, error, loading, data) => {
-    if(typeName===searchTypeName.value){
+    if(typeName===searchTypeName){
       if (data) {
-        console.log('Returned data: ' , data);
+        console.log('data: ', data);
         result = data;
         isLoading=false;
       }
       if(error){
-        console.log('Error: ' , error);
+        console.log('error: ', error);
         queryError = error;
         isLoading=false;
       }
@@ -161,17 +163,18 @@ function SearchRepo() {
   };
   const submit = () => {
     setNotShowAnything(false);
-    localStorage.setItem('token', process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN);
+    let usedToken = (yourToken) ? yourToken : process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN;
+    localStorage.setItem('token', usedToken);
+    console.log(localStorage.getItem('token'));
     isLoading = true;
-    console.log('searchTypeName: ', searchTypeName.value)
+    console.log('searchTypeName: ', searchTypeName)
     fetchFilteredOrgRepoDetails();
   }
   const fetchFilteredOrgRepoDetails = () => {
     const fetchPR = true, fetchOpenedIssue = true, fetchClosedIssue = true;
     const fetchPROrderBy = 'CREATED_AT', fetchOpenedIssueOrderBy = 'CREATED_AT', fetchClosedIssueOrderBy  = 'CREATED_AT';
     const fetchPRSortDirection = 'DESC', fetchOpenedIssueSortDirection = 'DESC', fetchClosedIssueSortDirection  = 'DESC';
-    setClonedSearchTypeName({...searchTypeName});
-    if(searchTypeName.value==='Username'){
+    if(searchTypeName==='Username'){
       let username = orgOrUserName;
       fetchUserRepoDetails({ variables: { username, repoName, 
         fetchPR, fetchPROrderBy, fetchPRSortDirection,
@@ -196,25 +199,25 @@ function SearchRepo() {
           <label htmlFor="orgOrUserName" className="float-left">Search the git repository of:</label>
           <Form.Group as={Row} className="type-radios">
             <Form.Check inline
-              checked={searchTypeName.value==='Username'}
+              checked={searchTypeName==='Username'}
               label="Username" 
               type="radio" 
               id="rdoUsername" 
               name="typeRadios"
               onChange={ () => {
-                setSearchTypeName({value: 'Username'});
+                setSearchTypeName('Username');
                 resetData();
                 setNotShowAnything(true);
               }}
             />
             <Form.Check inline 
-              checked={searchTypeName.value==='Organization'}
+              checked={searchTypeName==='Organization'}
               label="Organization" 
               type="radio" 
               id="rdoOrganization" 
               name="typeRadios"
               onChange={ () => {
-                setSearchTypeName({value: 'Organization'});
+                setSearchTypeName('Organization');
                 resetData();
                 setNotShowAnything(true);
               }}
@@ -226,14 +229,14 @@ function SearchRepo() {
         <Col>
           <Form noValidate validated={validated} onSubmit={handleSubmit}>
             <Form.Row>
-              <Form.Group as={Col} md="6" >
+              <Form.Group as={Col} md="8" >
                 <InputGroup className="mb-3">
                   <Form.Control
                     required
                     name="orgOrUserName"
                     id="orgOrUserName"
                     type="text"
-                    placeholder={(searchTypeName.value ==='Username' ? 'Username' : 'Organization Name')}
+                    placeholder={(searchTypeName ==='Username' ? 'Username' : 'Organization Name')}
                     value={orgOrUserName}
                     onChange={e=> setOrgOrUserName(e.target.value.trim())}
                   />
@@ -257,9 +260,22 @@ function SearchRepo() {
             </Form.Row>
           </Form>
         </Col>
+        <Col as={Col} md="4">
+          <InputGroup >
+            <InputGroup.Prepend>
+              <InputGroup.Text id="basic-addon1" className="bg-pale-blue"> <FontAwesomeIcon icon={faKey} /> </InputGroup.Text>
+            </InputGroup.Prepend>
+            <Form.Control
+              placeholder="Your Token"
+              onChange={(e) => {
+                setYourToken(e.target.value.trim());
+              }}
+            />
+          </InputGroup>
+        </Col>
       </Row>
     </Container>
-    <DisplayResultsInTabView orgOrUserName={orgOrUserName} repoName={repoName} notShowAnything={notShowAnything} searchTypeName={clonedSearchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
+    <DisplayResultsInTabView orgOrUserName={orgOrUserName} repoName={repoName} notShowAnything={notShowAnything} searchTypeName={searchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
   </div>;
   
   
