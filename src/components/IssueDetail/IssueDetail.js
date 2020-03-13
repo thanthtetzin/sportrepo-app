@@ -31,11 +31,10 @@ const alertInfo = (variant, message) => {
 }
 
 function IssueDetail(){
-  console.log('start')
-  let [ isLoading ] = useState(false);
-  let [ queryError ] = useState('');
-  let [ result ] = useState(null);
   let [ filterValue, setFilterValue ] = useState('');
+  let isLoading = false;
+  let queryError = '';
+  let result = null;
   const { type, name, reponame: repoName, number } = useParams();
   const typeNameCorrect = ['user','org'].includes(type);
   const orgName = name;
@@ -44,12 +43,12 @@ function IssueDetail(){
 
   const fetchRepoIssueDetails_CallBack = (error, loading, data) => {
     if (data) {
-      console.log('Returned data: ' , data);
+      console.log('data: ' , data);
       result = data;
       isLoading=false;
     }
     if(error){
-      console.log('Error: ' , error);
+      console.log('Error: ' , error.toString());
       queryError = error;
       isLoading=false;
     }
@@ -76,94 +75,100 @@ function IssueDetail(){
     } else if(queryError && !result){
       dataToRender = alertInfo("danger", 'Error: ' + queryError.message);
     } else if(!isLoading && result){
-      let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.username.repository.issue};
-      let issueStatus = issueDetail.closed ? 'Closed' : 'Open';      
-      let issueComments = issueDetail.comments.nodes;
-   
-      dataToRender = <div key="issueDetail">
-        <Container>
-          <Row className="margin-top-40">
-            <Col md="12">
-            <h1 className="title-and-number">
-              <span className="issue-title">{issueDetail.title}</span>
-              <span className="issue-number"> #{issueDetail.number}</span>
-            </h1>
-            </Col>
-          </Row>
-          <Row>
-            <Col md="8">
-              <div className="openedThisIssue">
-                <Badge variant={`${issueDetail.closed ? 'danger' : "success"}`}>
-                  {issueStatus}
-                </Badge>
-                <span className="openedThisIssue-text">
-                  <b>{issueDetail.author.login}</b> opened this issue {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()} . {issueDetail.comments.nodes.length} comments
-                </span>
-              </div>
-            </Col>
-            <Col md="10">
-            <hr />
-            </Col>
-          </Row>
-          <Row>
-            <Col md="4">
-            <InputGroup className="mb-3 comments-filter">
-              <InputGroup.Prepend>
-                <InputGroup.Text id="basic-addon1">Filter</InputGroup.Text>
-              </InputGroup.Prepend>
-              <FormControl
-                placeholder="Type anything to filter comments"
-                onChange={(e) => {
-                  setFilterValue(e.target.value.trim());
-                }}
-              />
-            </InputGroup>
-            </Col>
-          </Row>
-          <Row key={issueDetail.id} 
-            className={`${filterValue==='' || 
-            (filterValue!=='' && issueDetail.bodyText.includes(filterValue)) ? 'show' : "hide"}`}
-          >
-            <Col md="10">
-              <Card className="issue-description">
-                <Card.Header>
-                  <b>{issueDetail.author.login}</b> commented {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
-                </Card.Header>
-                <Card.Body>
-                  <Card.Text>
-                    <span dangerouslySetInnerHTML={{ __html: issueDetail.bodyHTML}}></span>
-                  </Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-          {issueComments.filter((comment) => {
-            if(filterValue===''){
-              return comment;
-            } else if(comment.bodyText.includes(filterValue)){
-              return comment;
-            } else{
-              return null;
-            }
-          })
-          .map(comment => (
-            <Row key={comment.id} className='margin-top-20'>
+      if(result.organization && !result.organization.repository){
+        dataToRender = alertInfo("info", `There is no specified repository in this Organization!`);
+      } else if(result.username && !result.username.repository){
+        dataToRender = alertInfo("info", `There is no specified repository for this Username!`);
+      } else {
+        let issueDetail = type==='org' ? {...result.organization.repository.issue} : {...result.username.repository.issue};
+        let issueStatus = issueDetail.closed ? 'Closed' : 'Open';      
+        let issueComments = issueDetail.comments.nodes;
+      
+        dataToRender = <div key="issueDetail">
+          <Container>
+            <Row className="margin-top-40">
+              <Col md="12">
+              <h1 className="title-and-number">
+                <span className="issue-title">{issueDetail.title}</span>
+                <span className="issue-number"> #{issueDetail.number}</span>
+              </h1>
+              </Col>
+            </Row>
+            <Row>
+              <Col md="8">
+                <div className="openedThisIssue">
+                  <Badge variant={`${issueDetail.closed ? 'danger' : "success"}`}>
+                    {issueStatus}
+                  </Badge>
+                  <span className="openedThisIssue-text">
+                    <b>{issueDetail.author.login}</b> opened this issue {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()} . {issueDetail.comments.nodes.length} comments
+                  </span>
+                </div>
+              </Col>
+              <Col md="10">
+              <hr />
+              </Col>
+            </Row>
+            <Row>
+              <Col md="4">
+              <InputGroup className="mb-3 comments-filter">
+                <InputGroup.Prepend>
+                  <InputGroup.Text id="basic-addon1">Filter</InputGroup.Text>
+                </InputGroup.Prepend>
+                <FormControl
+                  placeholder="Type anything to filter comments"
+                  onChange={(e) => {
+                    setFilterValue(e.target.value.trim());
+                  }}
+                />
+              </InputGroup>
+              </Col>
+            </Row>
+            <Row key={issueDetail.id} 
+              className={`${filterValue==='' || 
+              (filterValue!=='' && issueDetail.bodyText.includes(filterValue)) ? 'show' : "hide"}`}
+            >
               <Col md="10">
                 <Card className="issue-description">
                   <Card.Header>
-                    <b>{comment.author.login}</b> commented {moment(comment.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
+                    <b>{issueDetail.author.login}</b> commented {moment(issueDetail.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
                   </Card.Header>
                   <Card.Body>
                     <Card.Text>
-                      <span dangerouslySetInnerHTML={{ __html: comment.bodyHTML}}></span>
+                      <span dangerouslySetInnerHTML={{ __html: issueDetail.bodyHTML}}></span>
                     </Card.Text>
                   </Card.Body>
                 </Card>
               </Col>
             </Row>
-          ))}
-        </Container>
-        </div>
+            {issueComments.filter((comment) => {
+              if(filterValue===''){
+                return comment;
+              } else if(comment.bodyText.includes(filterValue)){
+                return comment;
+              } else{
+                return null;
+              }
+            })
+            .map(comment => (
+              <Row key={comment.id} className='margin-top-20'>
+                <Col md="10">
+                  <Card className="issue-description">
+                    <Card.Header>
+                      <b>{comment.author.login}</b> commented {moment(comment.createdAt, 'YYYY-MM-DD h:mm:ss').fromNow()}
+                    </Card.Header>
+                    <Card.Body>
+                      <Card.Text>
+                        <span dangerouslySetInnerHTML={{ __html: comment.bodyHTML}}></span>
+                      </Card.Text>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+            ))}
+          </Container>
+          </div>
+      }
     }
   } else {
     dataToRender = alertInfo("danger", 'The url parameters are not correct to fetch the data');

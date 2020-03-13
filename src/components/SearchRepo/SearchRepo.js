@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   InputGroup,
   Container,
@@ -54,12 +54,16 @@ function DisplayResultsInTabView(props) {
         </Row>
       </Container>;
   }
+  let authorizedResponse = true;
   if(props.isLoading){
     searchResult = <Spinner className="spinner" animation="border" variant="success" />
-  } else if(props.queryError && !props.result){
+  } else if(props.queryError && !props.queryError.includes('Received status code 401') && !props.result){
     searchResult = alertInfo("danger", (searchTypeName==='Username' ? 'Cannot find this Username in GitHub!' : 'Cannot find this Organization in GitHub!'));
+  } else if(props.queryError && props.queryError.includes('Received status code 401')){
+    searchResult = alertInfo("danger", 'Error 401: Authorization failed with current token to get response');
+    authorizedResponse = false;
   }
-  else if(!props.isLoading && props.result){
+  else if(!props.isLoading && props.result && authorizedResponse){
     let result = props.result;
     let pullRequests = null;
     let openedIssues = null;
@@ -111,34 +115,36 @@ function DisplayResultsInTabView(props) {
 
 function SearchRepo() {
   const [ validated, setValidated ] = useState(false);
-  const [ orgOrUserName, setOrgOrUserName ] = useState('');
-  const [ repoName, setRepoName ] = useState('');
-  const [ yourToken, setYourToken ] = useState('');
   const [ searchTypeName, setSearchTypeName ] = useState('Username');
-  let [ isLoading, setIsLoading ] = useState(false);
-  let [ queryError, setQueryError ] = useState('');
-  let [ result, setResult ] = useState(null);
-  let [ notShowAnything, setNotShowAnything ] = useState(false);
-
+  const yourTokenRef = useRef(null);
+  const repoNameRef = useRef('');
+  const orgOrUserNameRef = useRef('');
+  let isLoading = false;
+  let queryError = '';
+  let result = null;
+  let notShowAnything  = false;
+  
   const resetData = () => {
     console.log('resetData');
     setValidated(false);
-    setOrgOrUserName('');
-    setRepoName('');
-    setIsLoading(false);
-    setQueryError('');
-    setResult(null);
+    orgOrUserNameRef.current.value='';
+    repoNameRef.current.value='';
+    isLoading = false;
+    queryError = '';
+    result = null;
+    notShowAnything = true;
   }
   const fetchRepoDetails_CallBack = (typeName, error, loading, data) => {
-    if(typeName===searchTypeName){
+    if(typeName===searchTypeName && 
+      orgOrUserNameRef.current.value && repoNameRef.current.value){
       if (data) {
         console.log('data: ', data);
         result = data;
         isLoading=false;
       }
       if(error){
-        console.log('error: ', error);
-        queryError = error;
+        console.log('error: ', error.toString());
+        queryError = error.toString();
         isLoading=false;
       }
       if(loading){
@@ -146,8 +152,8 @@ function SearchRepo() {
       }
     }
   }
-  const [fetchOrgRepoDetails, { error: orgRepoError, loading: orgRepoLoading, data: orgRepoData }] = useLazyQuery(FETCH_ORG_REPO_DETAILS);
-  const [fetchUserRepoDetails, { error: userRepoError, loading: userRepoLoading, data: userRepoData }] = useLazyQuery(FETCH_USERNAME_REPO_DETAILS);
+  const [fetchOrgRepoDetails, { error: orgRepoError, loading: orgRepoLoading, data: orgRepoData }] = useLazyQuery(FETCH_ORG_REPO_DETAILS, {fetchPolicy: "cache-and-network"});
+  const [fetchUserRepoDetails, { error: userRepoError, loading: userRepoLoading, data: userRepoData }] = useLazyQuery(FETCH_USERNAME_REPO_DETAILS, {fetchPolicy: "cache-and-network"});
   fetchRepoDetails_CallBack('Organization', orgRepoError, orgRepoLoading, orgRepoData);
   fetchRepoDetails_CallBack('Username', userRepoError, userRepoLoading, userRepoData);
 
@@ -162,10 +168,9 @@ function SearchRepo() {
     setValidated(true);
   };
   const submit = () => {
-    setNotShowAnything(false);
-    let usedToken = (yourToken) ? yourToken : process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN;
+    notShowAnything = false;
+    let usedToken = (yourTokenRef.current.value) ? yourTokenRef.current.value : process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN;
     localStorage.setItem('token', usedToken);
-    console.log(localStorage.getItem('token'));
     isLoading = true;
     console.log('searchTypeName: ', searchTypeName)
     fetchFilteredOrgRepoDetails();
@@ -174,15 +179,19 @@ function SearchRepo() {
     const fetchPR = true, fetchOpenedIssue = true, fetchClosedIssue = true;
     const fetchPROrderBy = 'CREATED_AT', fetchOpenedIssueOrderBy = 'CREATED_AT', fetchClosedIssueOrderBy  = 'CREATED_AT';
     const fetchPRSortDirection = 'DESC', fetchOpenedIssueSortDirection = 'DESC', fetchClosedIssueSortDirection  = 'DESC';
+    const repoName = repoNameRef.current.value.trim();
+    repoNameRef.current.value = repoName;
     if(searchTypeName==='Username'){
-      let username = orgOrUserName;
+      const username = orgOrUserNameRef.current.value.trim();
+      orgOrUserNameRef.current.value = username;
       fetchUserRepoDetails({ variables: { username, repoName, 
         fetchPR, fetchPROrderBy, fetchPRSortDirection,
         fetchOpenedIssue, fetchOpenedIssueOrderBy, fetchOpenedIssueSortDirection,
         fetchClosedIssue, fetchClosedIssueOrderBy, fetchClosedIssueSortDirection
       } });
     } else{
-      let orgName = orgOrUserName;
+      const orgName = orgOrUserNameRef.current.value.trim();
+      orgOrUserNameRef.current.value = orgName;
       fetchOrgRepoDetails({ variables: { orgName, repoName, 
         fetchPR, fetchPROrderBy, fetchPRSortDirection,
         fetchOpenedIssue, fetchOpenedIssueOrderBy, fetchOpenedIssueSortDirection,
@@ -207,7 +216,6 @@ function SearchRepo() {
               onChange={ () => {
                 setSearchTypeName('Username');
                 resetData();
-                setNotShowAnything(true);
               }}
             />
             <Form.Check inline 
@@ -219,7 +227,6 @@ function SearchRepo() {
               onChange={ () => {
                 setSearchTypeName('Organization');
                 resetData();
-                setNotShowAnything(true);
               }}
             />
           </Form.Group>
@@ -237,8 +244,7 @@ function SearchRepo() {
                     id="orgOrUserName"
                     type="text"
                     placeholder={(searchTypeName ==='Username' ? 'Username' : 'Organization Name')}
-                    value={orgOrUserName}
-                    onChange={e=> setOrgOrUserName(e.target.value.trim())}
+                    ref={orgOrUserNameRef}
                   />
                   <InputGroup.Prepend>
                     <InputGroup.Text>/</InputGroup.Text>
@@ -249,8 +255,7 @@ function SearchRepo() {
                     id="repoName"
                     type="text"
                     placeholder="Repo name"
-                    value={repoName}
-                    onChange={e=> setRepoName(e.target.value.trim())}
+                    ref={repoNameRef}
                   />
                   <InputGroup.Append>
                     <Button type="submit" variant="outline-primary">Search</Button>
@@ -267,24 +272,18 @@ function SearchRepo() {
             </InputGroup.Prepend>
             <Form.Control
               placeholder="Your Token"
-              onChange={(e) => {
-                setYourToken(e.target.value.trim());
-              }}
+              ref={yourTokenRef}
             />
           </InputGroup>
         </Col>
       </Row>
     </Container>
-    <DisplayResultsInTabView orgOrUserName={orgOrUserName} repoName={repoName} notShowAnything={notShowAnything} searchTypeName={searchTypeName} queryError={queryError} isLoading={isLoading} result={result} />
+    <DisplayResultsInTabView orgOrUserName={orgOrUserNameRef.current.value} 
+      repoName={repoNameRef.current.value} notShowAnything={notShowAnything} searchTypeName={searchTypeName} 
+      queryError={queryError} isLoading={isLoading} result={result} />
   </div>;
   
-  
-  
-  
-  return ([
-    searchControls
-    ]
-  );
+  return searchControls;
 }
 
 export default SearchRepo;
