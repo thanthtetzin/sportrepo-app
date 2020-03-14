@@ -136,7 +136,7 @@ function SearchRepo() {
   }
   const fetchRepoDetails_CallBack = (typeName, error, loading, data) => {
     if(typeName===searchTypeName && 
-      orgOrUserNameRef.current.value && repoNameRef.current.value){
+      orgOrUserNameRef.current.value && repoNameRef.current.value && yourTokenRef.current.value){
       if (data) {
         console.log('data: ', data);
         result = data;
@@ -168,11 +168,13 @@ function SearchRepo() {
     setValidated(true);
   };
   const submit = () => {
+    console.log('searchTypeName: ', searchTypeName);
     notShowAnything = false;
-    let usedToken = (yourTokenRef.current.value) ? yourTokenRef.current.value : process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN;
-    localStorage.setItem('token', usedToken);
     isLoading = true;
-    console.log('searchTypeName: ', searchTypeName)
+    let usedToken = yourTokenRef.current.value.trim();
+    yourTokenRef.current.value = usedToken;
+    localStorage.setItem('token', usedToken);
+    
     fetchFilteredOrgRepoDetails();
   }
   const fetchFilteredOrgRepoDetails = () => {
@@ -236,7 +238,7 @@ function SearchRepo() {
         <Col>
           <Form noValidate validated={validated} onSubmit={handleSubmit}>
             <Form.Row>
-              <Form.Group as={Col} md="8" >
+              <Form.Group as={Col} md="10" >
                 <InputGroup className="mb-3">
                   <Form.Control
                     required
@@ -257,25 +259,25 @@ function SearchRepo() {
                     placeholder="Repo name"
                     ref={repoNameRef}
                   />
+                    <InputGroup.Prepend>
+                      <InputGroup.Text id="basic-addon1" className="bg-pale-blue"> <FontAwesomeIcon icon={faKey} /> </InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <Form.Control
+                      required
+                      placeholder="Your Personal Access Token"
+                      ref={yourTokenRef}
+                    />
+         
                   <InputGroup.Append>
                     <Button type="submit" variant="outline-primary">Search</Button>
                   </InputGroup.Append>
                 </InputGroup>
               </Form.Group>
+        
             </Form.Row>
           </Form>
         </Col>
-        <Col as={Col} md="4">
-          <InputGroup >
-            <InputGroup.Prepend>
-              <InputGroup.Text id="basic-addon1" className="bg-pale-blue"> <FontAwesomeIcon icon={faKey} /> </InputGroup.Text>
-            </InputGroup.Prepend>
-            <Form.Control
-              placeholder="Your Token"
-              ref={yourTokenRef}
-            />
-          </InputGroup>
-        </Col>
+        
       </Row>
     </Container>
     <DisplayResultsInTabView orgOrUserName={orgOrUserNameRef.current.value} 
